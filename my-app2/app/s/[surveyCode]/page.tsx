@@ -1,20 +1,12 @@
 import SurveyForm from './SurveyForm';
 
 
-export default async function Page({
-  params,
-}: {
-  params: Promise<{ surveyCode: string }>;
-}) {
+export default async function Page({ params }: { params: Promise<{ surveyCode: string }> }) {
   const { surveyCode } = await params;
 
 
-  // サーバ側でmetaを取得（同一ホスト内APIを叩く）
-  // 注意：デプロイ環境により絶対URLが必要な場合があります。
-  // その場合は NEXT_PUBLIC_SITE_URL を使う実装に変えます。
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/api/surveys/${surveyCode}/meta`, {
-    cache: 'no-store',
-  });
+  const base = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const res = await fetch(`${base}/api/surveys/${surveyCode}/meta`, { cache: 'no-store' });
 
 
   if (!res.ok) {

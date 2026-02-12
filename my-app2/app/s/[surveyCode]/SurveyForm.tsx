@@ -19,13 +19,7 @@ const EMPLOYEE_CODE_RE = /^[A-Za-z0-9]{3,20}$/;
 const SCALE_ORDER = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
 
 
-export default function SurveyForm({
-  surveyCode,
-  meta,
-}: {
-  surveyCode: string;
-  meta: Meta;
-}) {
+export default function SurveyForm({ surveyCode, meta }: { surveyCode: string; meta: Meta }) {
   const [employeeCode, setEmployeeCode] = useState('');
   const [departmentName, setDepartmentName] = useState(meta.departments?.[0]?.name ?? '');
   const [gender, setGender] = useState('未回答');
@@ -42,48 +36,34 @@ export default function SurveyForm({
   }, [meta]);
 
 
+  const requiredQuestionCodes = useMemo(() => allQuestions.map((q) => q.code), [allQuestions]);
+
+
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
 
-  function normalizeEmployeeCode(s: string) {
-    return s.trim().toUpperCase();
-  }
+  const normalizeEmployeeCode = (s: string) => s.trim().toUpperCase();
 
 
-  function setAnswer(code: string, value: number) {
-    setAnswers((prev) => ({ ...prev, [code]: value }));
-  }
-
-
-  const requiredQuestionCodes = useMemo(() => allQuestions.map((q) => q.code), [allQuestions]);
-
-
-  function validate(): string | null {
+  const validate = () => {
     const normalized = normalizeEmployeeCode(employeeCode);
-    if (!EMPLOYEE_CODE_RE.test(normalized)) {
-      return '社員IDは半角英数字3〜20文字で入力してください（例：A00123）';
-    }
+    if (!EMPLOYEE_CODE_RE.test(normalized)) return '社員IDは半角英数字3〜20文字で入力してください（例：A00123）';
     if (!departmentName) return '部署を選択してください。';
-
-
-    // 全設問回答チェック（MVPは必須）
     const missing = requiredQuestionCodes.filter((c) => !(c in answers));
     if (missing.length > 0) return '未回答の設問があります。すべて回答してください。';
-
-
     return null;
-  }
+  };
 
 
-  async function onSubmit() {
+  const setAnswer = (code: string, value: number) => setAnswers((prev) => ({ ...prev, [code]: value }));
+
+
+  const onSubmit = async () => {
     setMessage(null);
     const err = validate();
-    if (err) {
-      setMessage({ type: 'error', text: err });
-      return;
-    }
+    if (err) return setMessage({ type: 'error', text: err });
 
 
     setSubmitting(true);
@@ -93,14 +73,14 @@ export default function SurveyForm({
         departmentName,
         gender,
         ageBand,
-        answers,
+        answers
       };
 
 
       const res = await fetch(`/api/surveys/${surveyCode}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       });
 
 
@@ -113,25 +93,19 @@ export default function SurveyForm({
       }
 
 
-      // よくあるケースを丁寧に出す
-      if (res.status === 409) {
-        setMessage({ type: 'error', text: data.error ?? 'この社員IDは回答済みのため再回答できません。' });
-      } else if (res.status === 403) {
-        setMessage({ type: 'error', text: data.error ?? '回答期間外です。' });
-      } else if (res.status === 404) {
-        setMessage({ type: 'error', text: data.error ?? 'サーベイが見つかりません。' });
-      } else {
-        setMessage({ type: 'error', text: data.error ?? '送信に失敗しました。時間をおいて再度お試しください。' });
-      }
+      if (res.status === 409) setMessage({ type: 'error', text: data.error ?? '回答済みのため再回答できません。' });
+      else if (res.status === 403) setMessage({ type: 'error', text: data.error ?? '回答期間外です。' });
+      else if (res.status === 404) setMessage({ type: 'error', text: data.error ?? 'サーベイが見つかりません。' });
+      else setMessage({ type: 'error', text: data.error ?? '送信に失敗しました。時間をおいて再度お試しください。' });
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
 
   return (
     <section style={{ marginTop: 16 }}>
-      <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
+      <div style={{ padding: 16, border: '1px solid #ddd', borderRadius: 8, background: '#fff' }}>
         <h2 style={{ marginTop: 0 }}>基本情報</h2>
 
 
@@ -142,11 +116,10 @@ export default function SurveyForm({
               value={employeeCode}
               onChange={(e) => setEmployeeCode(e.target.value)}
               placeholder="例）A00123"
-              autoCapitalize="characters"
               style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 6 }}
             />
             <div style={{ color: '#666', fontSize: 12, marginTop: 6 }}>
-              半角英数字3〜20文字。入力後は自動的に大文字として扱われます。
+              半角英数字3〜20文字。入力後は大文字として扱われます。
             </div>
           </div>
 
@@ -201,11 +174,9 @@ export default function SurveyForm({
       </div>
 
 
-      <div style={{ marginTop: 16, padding: 16, border: '1px solid #ddd', borderRadius: 8 }}>
+      <div style={{ marginTop: 16, padding: 16, border: '1px solid #ddd', borderRadius: 8, background: '#fff' }}>
         <h2 style={{ marginTop: 0 }}>設問（1〜6）</h2>
-        <p style={{ color: '#666' }}>
-          1=全くあてはまらない、6=非常にあてはまる
-        </p>
+        <p style={{ color: '#666' }}>1=全くあてはまらない、6=非常にあてはまる</p>
 
 
         {SCALE_ORDER.map((scale) => {
@@ -213,18 +184,18 @@ export default function SurveyForm({
           if (qs.length === 0) return null;
 
 
+          const title =
+            scale === 'A' ? 'A（キャリア）' :
+            scale === 'B' ? 'B（ワークライフバランス）' :
+            scale === 'C' ? 'C（職場環境）' :
+            scale === 'D' ? 'D（コミュニケーション）' :
+            scale === 'E' ? 'E（報酬）' :
+            'F（ライスケール）';
+
+
           return (
             <div key={scale} style={{ marginTop: 20 }}>
-              <h3 style={{ marginBottom: 8 }}>
-                {scale === 'A' && 'A（キャリア）'}
-                {scale === 'B' && 'B（ワークライフバランス）'}
-                {scale === 'C' && 'C（職場環境）'}
-                {scale === 'D' && 'D（コミュニケーション）'}
-                {scale === 'E' && 'E（報酬）'}
-                {scale === 'F' && 'F（ライスケール）'}
-              </h3>
-
-
+              <h3 style={{ marginBottom: 8 }}>{title}</h3>
               {qs.map((q) => (
                 <div key={q.question_code} style={{ padding: '10px 0', borderTop: '1px solid #eee' }}>
                   <div style={{ fontWeight: 600 }}>
@@ -260,7 +231,7 @@ export default function SurveyForm({
             padding: 12,
             borderRadius: 8,
             background: message.type === 'success' ? '#e8fff1' : '#fff2f2',
-            border: message.type === 'success' ? '1px solid #93e6b5' : '1px solid #f2a0a0',
+            border: message.type === 'success' ? '1px solid #93e6b5' : '1px solid #f2a0a0'
           }}
         >
           {message.text}
@@ -278,7 +249,7 @@ export default function SurveyForm({
             border: 'none',
             background: submitting ? '#999' : '#111',
             color: '#fff',
-            cursor: submitting ? 'not-allowed' : 'pointer',
+            cursor: submitting ? 'not-allowed' : 'pointer'
           }}
         >
           {submitting ? '送信中…' : '送信する'}

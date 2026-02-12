@@ -3,13 +3,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 
 type MetaResponse = {
-  survey: {
-    code: string;
-    name: string;
-    start_at: string;
-    end_at: string;
-    status: string;
-  };
+  survey: { code: string; name: string; start_at: string; end_at: string; status: string };
   departments: { name: string }[];
   questionsByScale: Record<string, { question_code: string; question_text: string }[]>;
   choices: {
@@ -30,7 +24,6 @@ export async function GET(
   const { surveyCode } = await params;
 
 
-  // survey取得
   const { data: survey, error: surveyErr } = await supabaseAdmin
     .from('surveys')
     .select('code, name, start_at, end_at, status')
@@ -43,7 +36,6 @@ export async function GET(
   }
 
 
-  // 部署（アクティブのみ、sort_order順）
   const { data: departments, error: deptErr } = await supabaseAdmin
     .from('departments')
     .select('name')
@@ -56,7 +48,6 @@ export async function GET(
   }
 
 
-  // 設問（アクティブのみ、display_order順）
   const { data: questions, error: qErr } = await supabaseAdmin
     .from('questions')
     .select('question_code, scale, question_text, display_order')
@@ -69,16 +60,15 @@ export async function GET(
   }
 
 
-  // scaleごとにまとめる（A→E→F）
   const questionsByScale: MetaResponse['questionsByScale'] = {};
-  for (const scale of SCALE_ORDER) questionsByScale[scale] = [];
+  for (const s of SCALE_ORDER) questionsByScale[s] = [];
 
 
   for (const q of questions) {
     if (!questionsByScale[q.scale]) continue;
     questionsByScale[q.scale].push({
       question_code: q.question_code,
-      question_text: q.question_text,
+      question_text: q.question_text
     });
   }
 
@@ -96,9 +86,9 @@ export async function GET(
         { value: 3, label: 'ややあてはまらない（3）' },
         { value: 4, label: 'ややあてはまる（4）' },
         { value: 5, label: 'あてはまる（5）' },
-        { value: 6, label: '非常にあてはまる（6）' },
-      ],
-    },
+        { value: 6, label: '非常にあてはまる（6）' }
+      ]
+    }
   };
 
 
